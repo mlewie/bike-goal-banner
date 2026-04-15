@@ -1,30 +1,23 @@
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('canvas'); // Added registerFont
 const axios = require('axios');
 const cheerio = require('cheerio');
 const path = require('path');
 
 export default async function handler(req, res) {
     try {
-        // 1. Register Poppins Bold from your root folder
-        const fontPath = path.join(process.cwd(), 'Poppins-Bold.ttf');
-        registerFont(fontPath, { family: 'Poppins' }); 
+        // --- NEW: Register the font file ---
+        const fontPath = path.join(process.cwd(), 'font.ttf'); // Ensure you have font.ttf in your root
+        registerFont(fontPath, { family: 'CustomFont' }); 
 
-        // 2. Data Scraping
         const teamUrl = "https://support.baycrestfoundation.org/site/TR/Events/General?pg=team&team_id=9322&fr_id=1180";
         const response = await axios.get(teamUrl);
         const $ = cheerio.load(response.data);
         
-        // Pulling the raised value (e.g., "$7,100.00")
-        const raisedText = $('.amount-raised-value').first().text() || '0';
-        
-        // Remove symbols to get a clean number for math
-        const raised = parseFloat(raisedText.replace(/[$,]/g, '')) || 0;
+        const raisedText = $('.amount-raised-value').text().replace(/[$,]/g, '');
+        const raised = parseFloat(raisedText) || 0;
         const goal = 10000;
-        
-        // Calculation: (Raised / Goal) * 100
         const percentage = Math.min(Math.round((raised / goal) * 100), 100);
 
-        // 3. Setup Canvas
         const canvas = createCanvas(600, 200);
         const ctx = canvas.getContext('2d');
 
@@ -34,25 +27,23 @@ export default async function handler(req, res) {
         const bottom = await loadImage(bottomPath);
         const top = await loadImage(topPath);
 
-        // Draw Sequence
-        ctx.drawImage(bottom, 0, 0, 600, 200); // Background
+        ctx.drawImage(bottom, 0, 0, 600, 200);
         
-        ctx.fillStyle = '#e6e6e6'; // Grey Empty Bar
+        ctx.fillStyle = '#e6e6e6';
         ctx.fillRect(160, 140, 420, 40);
 
         const fillWidth = (percentage / 100) * 420;
-        ctx.fillStyle = '#97257e'; // Magenta Progress Fill
+        ctx.fillStyle = '#97257e';
         ctx.fillRect(160, 140, fillWidth, 40);
 
-        // Draw Percentage Text: Centered vertically, 20px from bar left
+        // --- UPDATED: Use the 'CustomFont' name we registered above ---
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px "Poppins"'; 
+        ctx.font = 'bold 18px "CustomFont"'; 
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${percentage}%`, 180, 160); // 160 (bar start) + 20px
+        ctx.fillText(`${percentage}%`, 180, 160);
 
-        ctx.drawImage(top, 0, 0, 600, 200); // Branding Overlay
+        ctx.drawImage(top, 0, 0, 600, 200);
 
-        // 4. Send Image
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.status(200).send(canvas.toBuffer());
