@@ -14,12 +14,17 @@ export default async function handler(req, res) {
         const response = await axios.get(teamUrl);
         const $ = cheerio.load(response.data);
         
-        const raisedText = $('.amount-raised-value').text().replace(/[$,]/g, '');
-        const raised = parseFloat(raisedText) || 0;
+        // Pulling the raised value (e.g., "$7,100.00")
+        const raisedText = $('.amount-raised-value').first().text() || '0';
+        
+        // Remove symbols to get a clean number for math
+        const raised = parseFloat(raisedText.replace(/[$,]/g, '')) || 0;
         const goal = 10000;
+        
+        // Calculation: (Raised / Goal) * 100
         const percentage = Math.min(Math.round((raised / goal) * 100), 100);
 
-        // 3. Canvas Setup
+        // 3. Setup Canvas
         const canvas = createCanvas(600, 200);
         const ctx = canvas.getContext('2d');
 
@@ -29,23 +34,23 @@ export default async function handler(req, res) {
         const bottom = await loadImage(bottomPath);
         const top = await loadImage(topPath);
 
-        // Draw Layers
-        ctx.drawImage(bottom, 0, 0, 600, 200);
+        // Draw Sequence
+        ctx.drawImage(bottom, 0, 0, 600, 200); // Background
         
-        ctx.fillStyle = '#e6e6e6'; // Empty bar
+        ctx.fillStyle = '#e6e6e6'; // Grey Empty Bar
         ctx.fillRect(160, 140, 420, 40);
 
         const fillWidth = (percentage / 100) * 420;
-        ctx.fillStyle = '#97257e'; // Progress fill
+        ctx.fillStyle = '#97257e'; // Magenta Progress Fill
         ctx.fillRect(160, 140, fillWidth, 40);
 
-        // Draw Percentage with Poppins
+        // Draw Percentage Text: Centered vertically, 20px from bar left
         ctx.fillStyle = '#ffffff';
-        ctx.font = '700 18px "Poppins"'; // Using the registered family name
+        ctx.font = 'bold 18px "Poppins"'; 
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${percentage}%`, 180, 160);
+        ctx.fillText(`${percentage}%`, 180, 160); // 160 (bar start) + 20px
 
-        ctx.drawImage(top, 0, 0, 600, 200);
+        ctx.drawImage(top, 0, 0, 600, 200); // Branding Overlay
 
         // 4. Send Image
         res.setHeader('Content-Type', 'image/png');
