@@ -5,70 +5,60 @@ const path = require('path');
 
 export default async function handler(req, res) {
     try {
-        // 1. Register Poppins Font
+        // 1. Register Poppins Bold from your root folder
         const fontPath = path.join(process.cwd(), 'Poppins-Bold.ttf');
         registerFont(fontPath, { family: 'Poppins' }); 
 
-        // 2. Data Scraping from Baycrest
+        // 2. Data Scraping
         const teamUrl = "https://support.baycrestfoundation.org/site/TR/Events/General?pg=team&team_id=9322&fr_id=1180";
         const response = await axios.get(teamUrl);
         const $ = cheerio.load(response.data);
         
-        // Target the specific values on the page
-        const raisedText = $('.amount-raised-value').first().text() || "0";
-        const goalText = $('.goal-value').first().text() || "10000";
-
-        // Cleaning function to remove $, commas, and extra text
-        const cleanNumber = (str) => {
-            const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-            return isNaN(num) ? 0 : num;
-        };
-
-        const raised = cleanNumber(raisedText);
-        const goal = cleanNumber(goalText) || 10000;
-
-        // PROGRESS CALCULATION (Raised / Goal)
+        // Pulling the raised value (e.g., "$7,100.00")
+        const raisedText = $('.amount-raised-value').first().text() || '0';
+        
+        // Remove symbols to get a clean number for math
+        const raised = parseFloat(raisedText.replace(/[$,]/g, '')) || 0;
+        const goal = 10000;
+        
+        // Calculation: (Raised / Goal) * 100
         const percentage = Math.min(Math.round((raised / goal) * 100), 100);
 
-        // 3. Canvas Setup (600x200)
+        // 3. Setup Canvas
         const canvas = createCanvas(600, 200);
         const ctx = canvas.getContext('2d');
 
-        // Load Images
         const bottomPath = path.join(process.cwd(), 'bottom-layer.png');
         const topPath = path.join(process.cwd(), 'top-layer.png');
+        
         const bottom = await loadImage(bottomPath);
         const top = await loadImage(topPath);
 
-        // DRAWING SEQUENCE
-        // Background
-        ctx.drawImage(bottom, 0, 0, 600, 200);
+        // Draw Sequence
+        ctx.drawImage(bottom, 0, 0, 600, 200); // Background
         
-        // Empty Bar Background (#e6e6e6)
-        ctx.fillStyle = '#e6e6e6';
+        ctx.fillStyle = '#e6e6e6'; // Grey Empty Bar
         ctx.fillRect(160, 140, 420, 40);
 
-        // Progress Fill (#97257e)
         const fillWidth = (percentage / 100) * 420;
-        ctx.fillStyle = '#97257e';
+        ctx.fillStyle = '#97257e'; // Magenta Progress Fill
         ctx.fillRect(160, 140, fillWidth, 40);
 
-        // Percentage Text (Centered vertically, 20px from left of bar)
+        // Draw Percentage Text: Centered vertically, 20px from bar left
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px "Poppins"';
+        ctx.font = 'bold 18px "Poppins"'; 
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${percentage}%`, 180, 160); // 160 (bar start) + 20 offset
+        ctx.fillText(`${percentage}%`, 180, 160); // 160 (bar start) + 20px
 
-        // Foreground Overlay
-        ctx.drawImage(top, 0, 0, 600, 200);
+        ctx.drawImage(top, 0, 0, 600, 200); // Branding Overlay
 
-        // 4. Send the Final Image
+        // 4. Send Image
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.status(200).send(canvas.toBuffer());
         
     } catch (error) {
-        console.error("Error generating image:", error);
-        res.status(500).send("Error generating image. Check Vercel logs.");
+        console.error(error);
+        res.status(500).send("Error generating image");
     }
 }
