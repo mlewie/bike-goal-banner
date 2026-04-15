@@ -6,7 +6,7 @@ const path = require('path');
 export default async function handler(req, res) {
     try {
         // 1. Register Poppins Bold from your root folder
-        const fontPath = path.join(process.cwd(), 'Poppins-Bold.ttf');
+        const fontPath = path.join(process.cwd(), 'font.ttf');
         registerFont(fontPath, { family: 'Poppins' }); 
 
         // 2. Data Scraping
