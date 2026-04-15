@@ -1,6 +1,11 @@
 {
+  "functions": {
+    "api/goal.js": {
+      "includeFiles": "*.png",
+      "includeFiles": "*.ttf"
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/", "destination": "/api/goal" }
   ]
 }
